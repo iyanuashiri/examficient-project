@@ -1,0 +1,12 @@
+EXAMFICIENT_SQLITE_FILE_NAME=examficient.db
+examficient.db
+.db
+test.db
+*.db
+.venv/
+__pycache__/
+.pytest_cache/
+.git/
+**/.env
+**/.env.*
+**/.env_*

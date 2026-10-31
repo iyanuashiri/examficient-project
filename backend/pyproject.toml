@@ -1,0 +1,21 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Iyanuoluwa Ajao", email = "ajaoiyanu@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "alembic>=1.20.1",
+    "boto3>=1.43.122",
+    "fastapi[standard]>=0.162.0",
+    "pwdlib[argon2]>=0.3.1",
+    "pyjwt>=2.15.1",
+    "python-decouple>=3.8",
+    "sqlalchemy>=2.1.6",
+]
+
+[tool.uv]
+package = false
