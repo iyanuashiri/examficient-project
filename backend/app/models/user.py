@@ -29,6 +29,9 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, native_enum=False, length=16), default=UserRole.user, index=True
     )
+    # Leaderboard visibility. Effort boards never show mastery — this only
+    # controls whether the name appears at all.
+    show_on_leaderboard: Mapped[bool] = mapped_column(Boolean, default=True)
    
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=datetime.datetime.utcnow)
    

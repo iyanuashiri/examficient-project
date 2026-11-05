@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from app import crud
 from app.api.deps import SessionDep, CurrentUserDep
-from app.schemas.user import UserCreate, UserRead
+from app.schemas.user import UserCreate, UserRead, UserSelfUpdate
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -18,6 +18,11 @@ async def create_user(user: UserCreate, session: SessionDep) -> UserRead:
 @router.get("/me/", response_model=UserRead)
 async def get_me(current_user: CurrentUserDep) -> UserRead:
     return current_user
+
+
+@router.patch("/me/", response_model=UserRead)
+async def update_me(data: UserSelfUpdate, session: SessionDep, user: CurrentUserDep) -> UserRead:
+    return crud.update_user(session, user, data.show_on_leaderboard)
 
 
 @router.get("/{user_id}/", response_model=UserRead)

@@ -27,3 +27,11 @@ def create_user(session: Session, user: UserCreate) -> User:
     session.commit()
     session.refresh(db_user)
     return db_user
+
+
+def update_user(session: Session, user: User, show_on_leaderboard: bool | None) -> User:
+    if show_on_leaderboard is not None:
+        user.show_on_leaderboard = show_on_leaderboard
+        session.commit()
+        session.refresh(user)
+    return user

@@ -5,6 +5,7 @@ Alembic autogenerate and ``create_all`` only see what this module has pulled in.
 """
 
 from app.models.base import Base, TimestampMixin
+from app.models.certification import Certification
 from app.models.document import Document
 from app.models.exam import (
     Exam,
@@ -20,19 +21,28 @@ from app.models.exam import (
     question_topics,
     topic_prerequisites,
 )
+from app.models.practice import Attempt, Enrollment, ExplainAttempt, Mastery, ReadinessSnapshot
+from app.models.room import Room
 from app.models.user import User, UserRole
 
 __all__ = [
     "Base",
     "TimestampMixin",
+    "Attempt",
+    "Certification",
     "Document",
+    "Enrollment",
     "Exam",
     "ExamStatus",
+    "ExplainAttempt",
     "Misconception",
+    "Mastery",
+    "Room",
     "Option",
     "Origin",
     "Question",
     "QuestionType",
+    "ReadinessSnapshot",
     "Syllabus",
     "Topic",
     "User",

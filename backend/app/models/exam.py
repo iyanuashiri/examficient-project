@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import datetime
 import enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.certification import Certification
 
 from sqlalchemy import (
     Boolean,
@@ -90,6 +94,13 @@ class Exam(TimestampMixin, Base):
     country: Mapped[str | None] = mapped_column(String(50))
     issuing_body: Mapped[str | None] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
+    # Pass mark on the same 0-100 scale as readiness predicted_score_pct.
+    pass_mark: Mapped[float | None] = mapped_column(Float)
+    # Fixed-date exams: the day everyone sits. Drives countdowns + daily plans.
+    exam_date: Mapped[datetime.date | None] = mapped_column(Date)
+    # Pace fitness: allowance per question, derived from official timing when known.
+    time_allowed_seconds: Mapped[int | None] = mapped_column(Integer)
+    question_count: Mapped[int | None] = mapped_column(Integer)
     status: Mapped[ExamStatus] = mapped_column(
         Enum(ExamStatus, native_enum=False, length=16), default=ExamStatus.draft, index=True
     )
@@ -99,16 +110,28 @@ class Exam(TimestampMixin, Base):
     user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
+    # The credential this exam ladders up to (WASSCE, JAMB UTME, a CFA level
+    # track...). NULL = standalone exam. One certification → many exams.
+    certification_id: Mapped[int | None] = mapped_column(
+        ForeignKey("certification.id", ondelete="SET NULL"), index=True, default=None
+    )
     visibility: Mapped[Visibility] = mapped_column(
         Enum(Visibility, native_enum=False, length=16),
         default=Visibility.private,
         index=True,
     )
+    # Voice input (mic → Meta transcription → same grading path) is a property
+    # of the exam, not the user: listening/speaking exams (SAT Reading/Writing,
+    # TOEFL, IELTS) get it; written exams (JAMB, WAEC) show it disabled.
+    voice_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
 
     syllabi: Mapped[list[Syllabus]] = relationship(
         back_populates="exam", cascade="all, delete-orphan"
     )
     questions: Mapped[list[Question]] = relationship(back_populates="exam")
+    certification: Mapped[Certification | None] = relationship(
+        back_populates="exams", foreign_keys=[certification_id]
+    )
 
     def __repr__(self) -> str:
         return f"<Exam(code={self.code!r})>"
@@ -256,9 +279,9 @@ class Question(TimestampMixin, Base):
     # passage: Mapped[str | None] = mapped_column(Text)  # shared comprehension text
     # stem_media_url: Mapped[str | None] = mapped_column(String(512))  # diagram, table, chart
     explanation: Mapped[str | None] = mapped_column(Text)  # authored answer rationale
-    # 1 easiest to 5 hardest. Nullable, and empty for most hand-entered
-    # questions until enough learners have answered it to estimate.
-    # difficulty: Mapped[float | None] = mapped_column(Float)
+    # IRT difficulty (b): negative = easy, positive = hard. NULL until enough
+    # learners have answered it to estimate; treated as 0.0 meanwhile.
+    difficulty: Mapped[float | None] = mapped_column(Float)
     # source_year: Mapped[int | None]  # year of the past paper, when it has one
     origin: Mapped[Origin] = mapped_column(
         Enum(Origin, native_enum=False, length=16), default=Origin.manual, index=True
@@ -285,11 +308,11 @@ class Question(TimestampMixin, Base):
 class Option(TimestampMixin, Base):
     """One answer option.
 
-    ``label`` is what the learner sees and what a recorded answer refers to
-    ("A"). ``content`` holds the option text, or the value for a numeric
-    question. Display order is the insertion order, which ``Option.id`` follows;
-    a ``sort_order`` column comes back when a review needs to re-order options
-    without re-lettering them.
+    No label column: A/B/C/D letters are presentation, assigned by the client
+    after shuffling. The database stores order-insensitive content plus the
+    correctness flag; display order is the insertion order (``Option.id``).
+    Grading and misconception diagnosis key off ``Option.id``, never a letter,
+    so shuffling can never corrupt an answer or a diagnosis.
 
     No database constraint forces "exactly one correct option", because a
     ``multi_select`` question legitimately has several. The single-choice rule
@@ -298,14 +321,11 @@ class Option(TimestampMixin, Base):
 
     __tablename__ = "option"
     __table_args__ = (
-        UniqueConstraint("question_id", "label", name="uq_option_question_label"),
-        CheckConstraint("label <> ''", name="ck_option_label"),
         Index("ix_option_question_correct", "question_id", "is_correct"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     question_id: Mapped[int] = mapped_column(ForeignKey("question.id", ondelete="CASCADE"), index=True)
-    label: Mapped[str] = mapped_column(String(4))
     content: Mapped[str] = mapped_column(Text)
     is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
     # sort_order: Mapped[int] = mapped_column(Integer, default=0)
@@ -315,12 +335,15 @@ class Option(TimestampMixin, Base):
     misconception_id: Mapped[int | None] = mapped_column(
         ForeignKey("misconception.id", ondelete="SET NULL")
     )
+    # Why this option is right/wrong. Shown after answering; never served
+    # with the question (PracticeQuestion omits it).
+    explanation: Mapped[str | None] = mapped_column(Text)
 
     question: Mapped[Question] = relationship(back_populates="options")
     misconception: Mapped[Misconception | None] = relationship()
 
     def __repr__(self) -> str:
-        return f"<Option(label={self.label!r}, correct={self.is_correct})>"
+        return f"<Option(id={self.id}, correct={self.is_correct})>"
 
 
 class Misconception(TimestampMixin, Base):

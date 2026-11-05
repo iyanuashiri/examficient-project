@@ -19,4 +19,9 @@ class UserRead(BaseModel):
     email: str
     is_active: bool
     role: str
+    show_on_leaderboard: bool
     created_at: datetime
+
+
+class UserSelfUpdate(BaseModel):
+    show_on_leaderboard: bool | None = None

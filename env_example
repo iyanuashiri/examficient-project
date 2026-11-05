@@ -1,0 +1,17 @@
+DATABASE_URL=sqlite:///./examficient.db
+SECRET_KEY=development-only-change-this-secret
+
+EXAMFICIENT_SQLITE_FILE_NAME=examficient.db
+
+
+META_API_KEY=
+
+LANGSMITH_API_KEY=
+LANGSMITH_TRACING=true
+LANGSMITH_PROJECT=examficient
+LANGSMITH_ENDPOINT=https://aws.api.smith.langchain.com
+
+
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION_NAME=
